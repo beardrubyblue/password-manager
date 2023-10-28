@@ -1,39 +1,35 @@
-import tkinter as tk
-from tkinter import ttk
-import psycopg2
-from login_page import LoginPage
-from register_page import RegisterPage
-from password_manager_page import PasswordManagerPage
+import os
+
+import flet as ft
+from flet.auth.providers import GitHubOAuthProvider
+
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+assert GITHUB_CLIENT_ID, "set GITHUB_CLIENT_ID environment variable"
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+assert GITHUB_CLIENT_SECRET, "set GITHUB_CLIENT_SECRET environment variable"
 
 
-class PasswordManagerApp:
-    def __init__(self, root):
-        self.root = root
-        root.title("Password Manager")
+def main(page: ft.Page):
+    provider = GitHubOAuthProvider(
+        client_id=GITHUB_CLIENT_ID,
+        client_secret=GITHUB_CLIENT_SECRET,
+        redirect_url="http://localhost:8550/api/oauth/redirect",
+    )
 
-        self.notebook = ttk.Notebook(root)
-        self.notebook.pack(fill='both', expand=True)
+    def login_click(e):
+        page.login(provider)
 
-        db_config = {
-            'database': 'postgres',
-            'user': 'postgres',
-            'password': '152733',
-            'host': 'localhost',
-            'port': '5432'
-        }
-        self.db = psycopg2.connect(**db_config)
+    def on_login(e):
+        print("Login error:", e.error)
+        print("Access token:", page.auth.token.access_token)
+        print("User ID:", page.auth.user.id)
 
-        login_page = LoginPage(self.notebook, self.db)
-        self.notebook.add(login_page.frame, text='Login')
-
-        register_page = RegisterPage(self.notebook, self.db)
-        self.notebook.add(register_page.frame, text='Register')
-
-        password_manager_page = PasswordManagerPage(self.notebook)
-        self.notebook.add(password_manager_page.frame, text='Password Manager')
+    page.on_login = on_login
+    page.add(ft.ElevatedButton("Login with GitHub", on_click=login_click))
 
 
-if __name__ == '__main__':
-    root = tk.Tk()
-    app = PasswordManagerApp(root)
-    root.mainloop()
+ft.app(target=main, port=8550)
+
+
+# export GITHUB_CLIENT_ID="4b1b2e24b5fbd4cf927f"
+# export GITHUB_CLIENT_SECRET="b28dd66a94f3be4898e2493742f25060493b3c45"
